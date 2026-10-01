@@ -1,0 +1,92 @@
+/* Jev Gmail Classifier — content styles.
+   Scoped with a jvc- prefix so they never collide with Gmail. */
+
+.jvc-chip {
+  --jvc-color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 0 7px;
+  height: 16px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  vertical-align: middle;
+  white-space: nowrap;
+  color: var(--jvc-color);
+  background: color-mix(in srgb, var(--jvc-color) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--jvc-color) 40%, transparent);
+}
+
+.jvc-chip.jvc-uncertain {
+  --jvc-color: #94a3b8;
+  color: #64748b;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.jvc-chip .jvc-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.jvc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.jvc-priority-high {
+  background: #ef4444;
+}
+.jvc-priority-medium {
+  background: #f59e0b;
+}
+.jvc-priority-low {
+  background: #94a3b8;
+}
+
+.jvc-status {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 70vw;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.86);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.jvc-status-text {
+  white-space: nowrap;
+}
+
+.jvc-status-warn {
+  color: #fca5a5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: light) {
+  .jvc-status {
+    color: #0f172a;
+    background: rgba(241, 245, 249, 0.94);
+  }
+  .jvc-status-warn {
+    color: #b91c1c;
+  }
+}

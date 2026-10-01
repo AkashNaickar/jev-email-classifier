@@ -1,0 +1,302 @@
+[
+  {
+    "senderName": "Priya Raman",
+    "senderEmail": "priya.raman@example.com",
+    "subject": "Re: Q3 budget draft — a couple of questions",
+    "snippet": "Hi, can you confirm the marketing figure on page 4? I want your thoughts before I send it to finance.",
+    "date": "9:41 AM",
+    "unread": true,
+    "expectedCategory": "needs-reply",
+    "note": "Direct question from a colleague; a person is waiting on an answer."
+  },
+  {
+    "senderName": "Marcus Webb",
+    "senderEmail": "marcus.webb@example.com",
+    "subject": "Are you available for a quick call this week?",
+    "snippet": "Could you do Thursday at 3pm? Let me know what works and I will send an invite.",
+    "date": "Yesterday",
+    "unread": true,
+    "expectedCategory": "needs-reply",
+    "note": "Scheduling question that expects a personal reply."
+  },
+  {
+    "senderName": "Sofia Lindqvist",
+    "senderEmail": "sofia.lindqvist@example.org",
+    "subject": "Quick question about this week's product digest",
+    "snippet": "Before I publish the digest, could you review the opening paragraph? I would love your thoughts on the tone and whether the roadmap section is accurate.",
+    "date": "Sep 12",
+    "unread": true,
+    "expectedCategory": "needs-reply",
+    "note": "TRAP: looks like a newsletter (digest, this week) but a real person wants a personal review, so it is needs-reply, not newsletters."
+  },
+  {
+    "senderName": "Daniel Osei",
+    "senderEmail": "daniel.osei@example.com",
+    "subject": "Following up on the proposal",
+    "snippet": "Just checking in — did you get a chance to look at the revised scope? Happy to jump on a call if easier.",
+    "date": "Mon, Sep 9",
+    "unread": false,
+    "expectedCategory": "needs-reply",
+    "note": "Follow-up that is waiting on a response."
+  },
+  {
+    "senderName": "Example Account Security",
+    "senderEmail": "security@example.org",
+    "subject": "Security alert: new sign-in to your Example account",
+    "snippet": "A new sign-in was detected from an unrecognized device. If this wasn't you, reset your password immediately to secure your account.",
+    "date": "8:05 AM",
+    "unread": true,
+    "expectedCategory": "action-required",
+    "note": "TRAP: security/account alert that genuinely needs the recipient to act; action-required, not updates and not spam (no payment or credential request)."
+  },
+  {
+    "senderName": "Example Payments",
+    "senderEmail": "billing@example.org",
+    "subject": "Action required: confirm your updated billing address",
+    "snippet": "Please confirm the billing address on file by Friday so your subscription is not interrupted.",
+    "date": "Sep 10",
+    "unread": true,
+    "expectedCategory": "action-required",
+    "note": "Explicit request to confirm something before a deadline."
+  },
+  {
+    "senderName": "Example People Ops",
+    "senderEmail": "hr@example.com",
+    "subject": "Reminder: sign your updated employment addendum",
+    "snippet": "Please sign the addendum in the portal before the end of the month.",
+    "date": "Sep 5",
+    "unread": false,
+    "expectedCategory": "action-required",
+    "note": "Signature task with a deadline."
+  },
+  {
+    "senderName": "Example IT Support",
+    "senderEmail": "it-support@example.org",
+    "subject": "Complete your annual security training by Sep 30",
+    "snippet": "All staff must complete the training module and acknowledge the policy before the deadline.",
+    "date": "Sep 1",
+    "unread": true,
+    "expectedCategory": "action-required",
+    "note": "Required task with an explicit deadline."
+  },
+  {
+    "senderName": "Example Platform Status",
+    "senderEmail": "status@example.org",
+    "subject": "Scheduled maintenance this Saturday",
+    "snippet": "We will perform routine maintenance on Saturday 02:00-04:00 UTC. No action is needed and all data remains safe.",
+    "date": "Sep 11",
+    "unread": false,
+    "expectedCategory": "updates",
+    "note": "Plain FYI status update; no reply or action expected."
+  },
+  {
+    "senderName": "Example Cloud",
+    "senderEmail": "notifications@example.org",
+    "subject": "Your storage plan has been updated",
+    "snippet": "We have increased your storage limit to 200 GB at no extra cost. This is a notification only.",
+    "date": "Sep 7",
+    "unread": false,
+    "expectedCategory": "updates",
+    "note": "Informational account change notification."
+  },
+  {
+    "senderName": "Example Deliveries",
+    "senderEmail": "deliveries@example.com",
+    "subject": "Delivery update: your package is on the way",
+    "snippet": "Your package left the warehouse and is expected Thursday. Track it in the app. No action needed.",
+    "date": "Sep 10",
+    "unread": false,
+    "expectedCategory": "updates",
+    "note": "Package status update; informational."
+  },
+  {
+    "senderName": "Example Dev Changelog",
+    "senderEmail": "changelog@example.org",
+    "subject": "Release notes: version 2.4 is now available",
+    "snippet": "Here is what changed in this release, including performance fixes and a new export option.",
+    "date": "Sep 3",
+    "unread": false,
+    "expectedCategory": "updates",
+    "note": "Product changelog; informational."
+  },
+  {
+    "senderName": "The Weekly Byte",
+    "senderEmail": "digest@example.com",
+    "subject": "The Weekly Byte — issue #142",
+    "snippet": "This week: the state of local-first software, five tools worth trying, and a long read on caching.",
+    "date": "Sep 13",
+    "unread": false,
+    "expectedCategory": "newsletters",
+    "note": "Subscribed editorial digest."
+  },
+  {
+    "senderName": "Design Notes",
+    "senderEmail": "newsletter@example.org",
+    "subject": "Design Notes monthly roundup",
+    "snippet": "Our monthly recap of typography, colour, and interface patterns. Read more on the site.",
+    "date": "Sep 2",
+    "unread": false,
+    "expectedCategory": "newsletters",
+    "note": "Recurring editorial newsletter."
+  },
+  {
+    "senderName": "Example Community",
+    "senderEmail": "community@example.org",
+    "subject": "Your community bulletin for September",
+    "snippet": "Upcoming meetups, a call for speakers, and the latest from the forum.",
+    "date": "Sep 4",
+    "unread": false,
+    "expectedCategory": "newsletters",
+    "note": "Community digest the recipient subscribed to."
+  },
+  {
+    "senderName": "Deals at Shoply",
+    "senderEmail": "deals@example.com",
+    "subject": "Your order confirmation — plus 40% off everything",
+    "snippet": "Thanks for your recent purchase! As a thank you, enjoy a flash sale: 40% off sitewide, free shipping, and last chance on clearance.",
+    "date": "Sep 8",
+    "unread": false,
+    "expectedCategory": "promotions",
+    "note": "TRAP: styled like an order confirmation, but it is a marketing blast; promotions, not receipts-finance."
+  },
+  {
+    "senderName": "Fitness Hub",
+    "senderEmail": "hello@example.com",
+    "subject": "New year, new goals — 30% off memberships",
+    "snippet": "Limited time offer: save up to 30% on annual plans when you join this week.",
+    "date": "Sep 6",
+    "unread": false,
+    "expectedCategory": "promotions",
+    "note": "Discount marketing."
+  },
+  {
+    "senderName": "Coffee Club",
+    "senderEmail": "offers@example.org",
+    "subject": "Buy one, get one free this weekend only",
+    "snippet": "Treat a friend: use coupon BOGO at checkout. Offer ends Sunday.",
+    "date": "Sep 14",
+    "unread": false,
+    "expectedCategory": "promotions",
+    "note": "Promotional offer."
+  },
+  {
+    "senderName": "TravelNow",
+    "senderEmail": "deals@example.com",
+    "subject": "Last chance: exclusive offer on winter escapes",
+    "snippet": "Book by Friday and save with our best deal of the season.",
+    "date": "Sep 15",
+    "unread": true,
+    "expectedCategory": "promotions",
+    "note": "Travel promotion."
+  },
+  {
+    "senderName": "Acme Consulting",
+    "senderEmail": "billing@example.com",
+    "subject": "Invoice INV-2043 for August services",
+    "snippet": "Your invoice is attached. Amount due: $480.00, payable by Apr 15.",
+    "date": "Sep 8",
+    "unread": false,
+    "expectedCategory": "receipts-finance",
+    "note": "TRAP: genuine invoice/receipt; receipts-finance."
+  },
+  {
+    "senderName": "Example Store",
+    "senderEmail": "receipts@example.com",
+    "subject": "Your receipt from Example Store",
+    "snippet": "Order #A19-4471. Total: $32.50. Payment received via card ending 4242.",
+    "date": "Sep 9",
+    "unread": false,
+    "expectedCategory": "receipts-finance",
+    "note": "Purchase receipt."
+  },
+  {
+    "senderName": "City Utilities",
+    "senderEmail": "statements@example.org",
+    "subject": "Your monthly statement is ready",
+    "snippet": "Your statement for August is available. Balance due: $76.20 by Sep 25.",
+    "date": "Sep 1",
+    "unread": false,
+    "expectedCategory": "receipts-finance",
+    "note": "Utility statement/bill."
+  },
+  {
+    "senderName": "Example Bank",
+    "senderEmail": "statements@example.com",
+    "subject": "Payment confirmation: transfer completed",
+    "snippet": "Your transfer of $250.00 to savings has completed. Reference TRX-88213.",
+    "date": "Sep 12",
+    "unread": false,
+    "expectedCategory": "receipts-finance",
+    "note": "Banking/payment confirmation."
+  },
+  {
+    "senderName": "Pixelgram",
+    "senderEmail": "notify@example.org",
+    "subject": "Maya Chen started following you",
+    "snippet": "See Maya's profile and follow back.",
+    "date": "Sep 10",
+    "unread": false,
+    "expectedCategory": "social",
+    "note": "Social network follow notification."
+  },
+  {
+    "senderName": "Forum Hub",
+    "senderEmail": "community@example.com",
+    "subject": "Your post received 12 new comments",
+    "snippet": "People are replying to your thread in #build-in-public. Jump back in.",
+    "date": "Sep 11",
+    "unread": true,
+    "expectedCategory": "social",
+    "note": "Forum activity notification."
+  },
+  {
+    "senderName": "Skyline Dating",
+    "senderEmail": "hello@example.org",
+    "subject": "You have a new connection request",
+    "snippet": "Jordan liked your profile and sent you a message.",
+    "date": "Sep 7",
+    "unread": false,
+    "expectedCategory": "social",
+    "note": "Dating app notification."
+  },
+  {
+    "senderName": "LinkUp",
+    "senderEmail": "notifications@example.com",
+    "subject": "Alex Rivera mentioned you in a comment",
+    "snippet": "Alex tagged you in a discussion about the conference talk.",
+    "date": "Sep 5",
+    "unread": false,
+    "expectedCategory": "social",
+    "note": "Mention/tag notification."
+  },
+  {
+    "senderName": "Example Alerts",
+    "senderEmail": "alerts@example.com",
+    "subject": "Urgent: verify your account or it will be suspended",
+    "snippet": "We detected unusual sign-in activity. Click here to confirm your identity within 24 hours or your mailbox will be suspended.",
+    "date": "3:12 AM",
+    "unread": true,
+    "expectedCategory": "spam",
+    "note": "TRAP: phishing/scam. Requests credentials through an unsolicited link; spam, despite the security framing."
+  },
+  {
+    "senderName": "Lucky Draw",
+    "senderEmail": "winner@example.org",
+    "subject": "You have won $1,000,000 — claim now",
+    "snippet": "Congratulations! To release your prize, send a small processing fee in gift cards. Act now, offer expires tonight.",
+    "date": "1:47 AM",
+    "unread": true,
+    "expectedCategory": "spam",
+    "note": "Classic advance-fee scam."
+  },
+  {
+    "senderName": "CryptoX",
+    "senderEmail": "invest@example.com",
+    "subject": "Double your bitcoin in 24 hours",
+    "snippet": "Guaranteed returns with our trading bot. Limited spots, click here to start.",
+    "date": "2:03 AM",
+    "unread": true,
+    "expectedCategory": "spam",
+    "note": "Investment scam/junk."
+  }
+]

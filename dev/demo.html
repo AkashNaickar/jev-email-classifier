@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev demo — no network</title>
+<!-- Real content stylesheet produced by the extension build. -->
+<link rel="stylesheet" href="../dist/styles.css">
+<style>
+  :root { color-scheme: light; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #ffffff;
+    color: #202124;
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 18px 16px 72px; }
+  header h1 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+  .note { margin: 0 0 12px; color: #5f6368; font-size: 12px; }
+  .controls {
+    display: flex; align-items: center; gap: 18px;
+    padding: 8px 0 12px; font-size: 13px; color: #3c4043;
+  }
+  .controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .controls .hint { color: #80868b; font-size: 12px; }
+
+  /* Gmail-like list. The container carries F cf zt so the observer finds it. */
+  table.F.cf.zt { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  table.F.cf.zt td { padding: 9px 10px; border-bottom: 1px solid #e8eaed; vertical-align: top; }
+  tr.zA { cursor: pointer; }
+  tr.zA:hover td { background: #f1f3f4; }
+  tr.zA.zE td.sender span[email],
+  tr.zA.zE .bog,
+  tr.zA.zE .y2 { font-weight: 700; }
+
+  td.sender { width: 190px; overflow: hidden; }
+  td.sender span[email] {
+    display: inline-block; max-width: 175px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  td.content { width: auto; overflow: hidden; }
+  .subject-line { display: flex; align-items: center; min-width: 0; }
+  .bog { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .y2 {
+    display: block; margin-top: 1px; color: #5f6368; font-size: 12.5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  td.xW { width: 92px; text-align: right; color: #5f6368; font-size: 12px; white-space: nowrap; }
+
+  #body-view {
+    margin-top: 18px; border: 1px solid #dadce0; border-radius: 8px;
+    padding: 14px 16px; background: #fafafa;
+  }
+  #body-view[hidden] { display: none; }
+  #body-view h2 { margin: 0 0 8px; font-size: 14px; color: #202124; }
+  #body-view h2 span { color: #5f6368; font-weight: 400; }
+  .a3s { font-size: 13px; line-height: 1.55; color: #3c4043; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Jev demo — no network</h1>
+    <p class="note">
+      Stub harness for <code>dist/content.js</code>: a fake Gmail list, a stubbed
+      <code>chrome.runtime</code>, and canned Jev responses. No requests leave the page.
+    </p>
+  </header>
+
+  <div class="controls">
+    <label>
+      <input type="checkbox" id="group-toggle">
+      Group by priority (on-screen only)
+    </label>
+    <span class="hint">Click a row to open its body.</span>
+  </div>
+
+  <div role="main">
+    <table class="F cf zt" id="mail-table">
+      <tbody id="mail-rows"></tbody>
+    </table>
+  </div>
+
+  <div id="body-view" hidden>
+    <h2>Opened message <span id="body-subject"></span></h2>
+    <div class="a3s" id="body-content"></div>
+  </div>
+</div>
+
+<script>
+/*
+ * Everything below is the demo harness: a chrome.runtime stub plus the fake
+ * mailbox. It runs before ../dist/content.js so the bundle talks to the stub,
+ * never to a real extension.
+ */
+(function () {
+  'use strict';
+
+  /* ------------------------- default settings copy ------------------------- */
+
+  // Mirror of DEFAULT_CATEGORIES in src/shared/defaults.ts (ids/names/descriptions).
+  var CATEGORY_NAMES = {
+    'needs-reply': 'Needs reply',
+    'action-required': 'Action required',
+    'updates': 'Updates',
+    'newsletters': 'Newsletters',
+    'promotions': 'Promotions',
+    'receipts-finance': 'Receipts/Finance',
+    'social': 'Social',
+    'spam': 'Spam'
+  };
+
+  var DEFAULT_CATEGORIES = [
+    { id: 'needs-reply', name: 'Needs reply', description: 'A real person is asking the recipient a question or expecting a response.' },
+    { id: 'action-required', name: 'Action required', description: 'The recipient must do something: confirm, sign, pay, approve, verify, complete a form, or meet a deadline.' },
+    { id: 'updates', name: 'Updates', description: 'Notifications and status updates about accounts, services, orders, or systems.' },
+    { id: 'newsletters', name: 'Newsletters', description: 'Recurring editorial or digest email from a publication, community, or company.' },
+    { id: 'promotions', name: 'Promotions', description: 'Marketing, sales, discounts, deals, product announcements, or anything trying to sell something.' },
+    { id: 'receipts-finance', name: 'Receipts/Finance', description: 'Receipts, invoices, order confirmations, statements, bills, payment confirmations.' },
+    { id: 'social', name: 'Social', description: 'Updates from social networks, forums, or dating apps.' },
+    { id: 'spam', name: 'Spam', description: 'Unsolicited junk, scams, phishing, chain mail, or anything the recipient did not ask to receive.' }
+  ];
+
+  // Mirror of DEFAULT_SETTINGS: shallow copy with a fresh categories array.
+  var currentSettings = {
+    enabled: true,
+    provider: 'typesafe',
+    categories: DEFAULT_CATEGORIES.map(function (c) { return { id: c.id, name: c.name, description: c.description }; }),
+    confidenceThreshold: 0.45,
+    priorityHighThreshold: 0.66,
+    priorityLowThreshold: 0.34,
+    privacyMode: false,
+    deepMode: false,
+    groupByPriority: false,
+    classifyUnreadOnly: true,
+    maxCategories: 15
+  };
+
+  function cloneSettings() {
+    return JSON.parse(JSON.stringify(currentSettings));
+  }
+
+  /* ------------------------------ fake mailbox ----------------------------- */
+
+  // Every row also carries its canned classification spec (`c`).
+  var EMAILS = [
+    {
+      id: 'thread-order', senderName: 'Jev Store', senderEmail: 'orders@jevstore.example',
+      subject: 'Your order JE-88213 has shipped',
+      snippet: 'Your package left our warehouse and is scheduled to arrive Thursday.',
+      dateText: '9:41 AM', dateTitle: '2026-09-30T09:41:00Z', unread: true,
+      body: 'Hi Akash,\n\nYour order JE-88213 has shipped. Tracking: JV-4471-8820.\nExpected delivery: Thursday.\n\n— Jev Store',
+      c: { categoryId: 'updates', categoryConfidence: 0.91, priority: 'low', priorityScore: 0.12, priorityConfidence: 0.86, spamProbability: 0.02, needsReplyProbability: 0.05, uncertain: false,
+        probabilities: { updates: 0.91, 'receipts-finance': 0.05, promotions: 0.03, 'needs-reply': 0.01 } }
+    },
+    {
+      id: 'thread-invoice', senderName: 'Acme Billing', senderEmail: 'billing@acme.example',
+      subject: 'Invoice INV-2043 from Acme - payment received',
+      snippet: 'Thanks, we received your payment of $1,240.00. No action is needed.',
+      dateText: 'Sep 29', dateTitle: '2026-09-29T15:03:00Z', unread: false,
+      body: 'Payment received: $1,240.00 for invoice INV-2043.\nThis is a receipt; no action is required.\n\n— Acme Billing',
+      c: { categoryId: 'receipts-finance', categoryConfidence: 0.95, priority: 'low', priorityScore: 0.10, priorityConfidence: 0.90, spamProbability: 0.03, needsReplyProbability: 0.04, uncertain: false,
+        probabilities: { 'receipts-finance': 0.95, updates: 0.03, promotions: 0.02 } }
+    },
+    {
+      id: 'thread-contract', senderName: 'Dana Whitfield', senderEmail: 'dana.whitfield@partner.example',
+      subject: 'Re: Contract review - need your sign-off by Friday',
+      snippet: 'Can you confirm the redlines before Friday so legal can file the agreement?',
+      dateText: '8:15 AM', dateTitle: '2026-09-30T08:15:00Z', unread: true,
+      body: 'Hi Akash,\n\nCan you confirm the two redlines I left in section 4 before Friday? Legal needs your sign-off to file the agreement.\n\nThanks,\nDana',
+      c: { categoryId: 'needs-reply', categoryConfidence: 0.88, priority: 'high', priorityScore: 0.82, priorityConfidence: 0.84, spamProbability: 0.01, needsReplyProbability: 0.93, uncertain: false,
+        probabilities: { 'needs-reply': 0.88, 'action-required': 0.09, updates: 0.03 } }
+    },
+    {
+      id: 'thread-promo-receipt', senderName: 'PremiumOffers', senderEmail: 'deals@premiumoffers.example',
+      subject: 'Your receipt from PremiumOffers - 50% off ends tonight',
+      snippet: 'Order summary attached. Claim 50% off all plans before midnight.',
+      dateText: '11:20 AM', dateTitle: '2026-09-30T11:20:00Z', unread: true,
+      body: 'See your order summary below, then claim 50% off any premium plan.\nOffer ends tonight at midnight.\n\nUnsubscribe: http://premiumoffers.example/prefs',
+      c: { categoryId: 'promotions', categoryConfidence: 0.74, priority: 'low', priorityScore: 0.16, priorityConfidence: 0.70, spamProbability: 0.35, needsReplyProbability: 0.02, uncertain: false,
+        probabilities: { promotions: 0.74, 'receipts-finance': 0.20, spam: 0.06 } }
+    },
+    {
+      id: 'thread-phish', senderName: 'Account Security', senderEmail: 'no-reply@mail-verify.example',
+      subject: 'URGENT: Your mailbox will be closed - confirm your password',
+      snippet: 'Unusual sign-in detected. Verify your account within 24 hours or lose access.',
+      dateText: '6:02 AM', dateTitle: '2026-09-30T06:02:00Z', unread: true,
+      body: 'Your mailbox will be closed within 24 hours.\nClick http://mail-verify.example/login to confirm your password and keep access.\n\nAccount Security Team',
+      c: { categoryId: 'spam', categoryConfidence: 0.94, priority: 'high', priorityScore: 0.90, priorityConfidence: 0.88, spamProbability: 0.96, needsReplyProbability: 0.01, uncertain: false,
+        probabilities: { spam: 0.94, 'action-required': 0.04, updates: 0.02 } }
+    },
+    {
+      id: 'thread-rust', senderName: 'Rust Weekly', senderEmail: 'hello@rustweekly.example',
+      subject: 'Rust Weekly #548 - async runtimes explained',
+      snippet: 'This week: runtimes compared, a guide to pinning, and five new crates.',
+      dateText: 'Sep 28', dateTitle: '2026-09-28T07:00:00Z', unread: true,
+      body: 'Welcome to issue 548.\nThis week we compare async runtimes and round up five new crates.\n\nUnsubscribe: http://rustweekly.example/prefs',
+      c: { categoryId: 'newsletters', categoryConfidence: 0.88, priority: 'low', priorityScore: 0.14, priorityConfidence: 0.80, spamProbability: 0.04, needsReplyProbability: 0.06, uncertain: false,
+        probabilities: { newsletters: 0.88, updates: 0.07, promotions: 0.05 } }
+    },
+    {
+      id: 'thread-merge', senderName: 'The Merge', senderEmail: 'editor@themerge.example',
+      subject: 'The Merge #42 - reply with your talk ideas',
+      snippet: 'We are planning the next meetup. Reply with a title and we will schedule you.',
+      dateText: '10:05 AM', dateTitle: '2026-09-30T10:05:00Z', unread: true,
+      body: 'Hi there,\n\nWe are planning the next meetup and would love your talk ideas. Reply with a title and a one-line abstract so we can schedule you.\n\n— The Merge',
+      c: { categoryId: 'needs-reply', categoryConfidence: 0.79, priority: 'medium', priorityScore: 0.52, priorityConfidence: 0.75, spamProbability: 0.03, needsReplyProbability: 0.88, uncertain: false,
+        probabilities: { 'needs-reply': 0.79, newsletters: 0.18, 'action-required': 0.03 } }
+    },
+    {
+      id: 'thread-social', senderName: 'Nexus', senderEmail: 'invitations@nexus.example',
+      subject: 'Maya Chen invited you to connect on Nexus',
+      snippet: 'Maya Chen, Staff Engineer, wants to connect with you.',
+      dateText: 'Sep 27', dateTitle: '2026-09-27T18:44:00Z', unread: false,
+      body: 'Maya Chen (Staff Engineer) invited you to connect on Nexus.\nView invitation: http://nexus.example/invite/8821',
+      c: { categoryId: 'social', categoryConfidence: 0.90, priority: 'low', priorityScore: 0.08, priorityConfidence: 0.85, spamProbability: 0.05, needsReplyProbability: 0.10, uncertain: false,
+        probabilities: { social: 0.90, promotions: 0.06, updates: 0.04 } }
+    },
+    {
+      id: 'thread-tax', senderName: 'People Ops', senderEmail: 'peopleops@employer.example',
+      subject: 'Action required: update your tax details before 15 Oct',
+      snippet: 'Please confirm your tax residency in the portal by 15 October.',
+      dateText: '7:30 AM', dateTitle: '2026-09-30T07:30:00Z', unread: true,
+      body: 'Please confirm your tax residency and upload any missing documents in the portal before 15 October.\n\n— People Ops',
+      c: { categoryId: 'action-required', categoryConfidence: 0.83, priority: 'high', priorityScore: 0.71, priorityConfidence: 0.80, spamProbability: 0.02, needsReplyProbability: 0.40, uncertain: false,
+        probabilities: { 'action-required': 0.83, updates: 0.12, 'needs-reply': 0.05 } }
+    },
+    {
+      id: 'thread-sync', senderName: 'Ops', senderEmail: 'ops@internal.example',
+      subject: 'Team sync notes',
+      snippet: 'Notes from the sync are in the doc, plus a couple of follow-ups.',
+      dateText: '12:48 PM', dateTitle: '2026-09-30T12:48:00Z', unread: true,
+      body: 'Notes from the sync are in the shared doc.\nTwo follow-ups are assigned, but the owners are still unclear.',
+      // Deliberately ambiguous: confidence 0.38 < 0.45 -> neutral "Uncertain" chip.
+      c: { categoryId: 'updates', categoryConfidence: 0.38, priority: 'medium', priorityScore: 0.44, priorityConfidence: 0.41, spamProbability: 0.08, needsReplyProbability: 0.45, uncertain: true,
+        probabilities: { updates: 0.38, 'needs-reply': 0.31, newsletters: 0.17, 'action-required': 0.14 } }
+    }
+  ];
+
+  var FALLBACK = { categoryId: 'updates', categoryConfidence: 0.40, priority: 'medium', priorityScore: 0.4, priorityConfidence: 0.4, spamProbability: 0.1, needsReplyProbability: 0.2, uncertain: true,
+    probabilities: { updates: 0.4, 'needs-reply': 0.2, newsletters: 0.2, promotions: 0.2 } };
+
+  // Index canned specs by subject (the demo stub matches on subject text).
+  var CANNED = {};
+  EMAILS.forEach(function (email) { CANNED[email.subject] = email.c; });
+
+  /* --------------------------- canned classification ------------------------ */
+
+  function classify(email, deep) {
+    var spec = CANNED[email.subject] || FALLBACK;
+    var result = {
+      emailId: email.id,
+      hash: email.hash,
+      categoryId: spec.categoryId,
+      categoryName: CATEGORY_NAMES[spec.categoryId] || spec.categoryId,
+      categoryConfidence: spec.categoryConfidence,
+      probabilities: spec.probabilities,
+      priority: spec.priority,
+      priorityScore: spec.priorityScore,
+      priorityConfidence: spec.priorityConfidence,
+      spamProbability: spec.spamProbability,
+      needsReplyProbability: spec.needsReplyProbability,
+      uncertain: spec.uncertain,
+      model: 'jev-1.13.0-demo',
+      provider: 'typesafe',
+      at: Date.now()
+    };
+    if (deep) result.deep = true;
+    return result;
+  }
+
+  /* ------------------------------ chrome stub ------------------------------ */
+
+  var listeners = [];
+
+  function sendMessage(message) {
+    var type = message && message.type;
+    if (type === 'GET_SETTINGS') {
+      return Promise.resolve({ type: 'SETTINGS', settings: cloneSettings() });
+    }
+    if (type === 'CLASSIFY') {
+      var emails = Array.isArray(message.emails) ? message.emails : [];
+      var results = emails.map(function (email) { return classify(email, false); });
+      return Promise.resolve({ type: 'CLASSIFY_RESULT', requestId: message.requestId, results: results, errors: [] });
+    }
+    if (type === 'DEEP_CLASSIFY') {
+      var deep = classify(message.email, true);
+      deep.uncertain = false;
+      deep.categoryConfidence = Math.max(deep.categoryConfidence, 0.62);
+      return Promise.resolve({ type: 'CLASSIFY_RESULT', requestId: message.requestId, results: [deep], errors: [] });
+    }
+    if (type === 'GET_STATUS') {
+      return Promise.resolve({
+        type: 'STATUS',
+        stats: { classified: EMAILS.length, inFlight: 0, errors: 0, estimatedCostUsd: 0.000123, cached: 0 }
+      });
+    }
+    return Promise.resolve(undefined);
+  }
+
+  var runtime = {
+    sendMessage: sendMessage,
+    onMessage: {
+      addListener: function (fn) {
+        if (typeof fn === 'function') listeners.push(fn);
+      }
+    }
+  };
+
+  var stub = { runtime: runtime };
+
+  // Define the stub before ../dist/content.js runs. Keep a literal
+  // `globalThis.chrome` assignment as a fallback for odd page contexts.
+  try {
+    Object.defineProperty(globalThis, 'chrome', {
+      value: stub,
+      writable: true,
+      configurable: true
+    });
+  } catch (err) {
+    /* window.chrome can be non-configurable in some contexts. */
+  }
+  if (!globalThis.chrome || !globalThis.chrome.runtime) {
+    globalThis.chrome = stub;
+  }
+  if (globalThis.chrome && !globalThis.chrome.runtime) {
+    globalThis.chrome.runtime = runtime;
+  }
+
+  // Convenience: lets you push STATUS/WARNING/SETTINGS from the console.
+  globalThis.__jevDemo = {
+    emit: function (message) {
+      listeners.forEach(function (fn) {
+        try { fn(message); } catch (err) { /* keep the demo alive */ }
+      });
+    }
+  };
+
+  /* ------------------------------- fake list ------------------------------- */
+
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderRows() {
+    var tbody = document.getElementById('mail-rows');
+    var frag = document.createDocumentFragment();
+    EMAILS.forEach(function (email) {
+      var tr = document.createElement('tr');
+      // `zE` marks unread; the content script reads this for classifyUnreadOnly.
+      tr.className = email.unread ? 'zA zE' : 'zA';
+      tr.id = email.id;
+      tr.setAttribute('data-legacy-thread-id', email.id);
+      tr.innerHTML =
+        '<td class="sender"><span email="' + esc(email.senderEmail) + '">' + esc(email.senderName) + '</span></td>' +
+        '<td class="content">' +
+          '<div class="subject-line"><span class="bog">' + esc(email.subject) + '</span></div>' +
+          '<span class="y2">' + esc(email.snippet) + '</span>' +
+        '</td>' +
+        '<td class="xW"><span title="' + esc(email.dateTitle) + '">' + esc(email.dateText) + '</span></td>';
+      frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+  }
+
+  /* ------------------------------ interactions ----------------------------- */
+
+  function openBody(email) {
+    var view = document.getElementById('body-view');
+    document.getElementById('body-subject').textContent = '— ' + email.subject;
+    document.getElementById('body-content').textContent = email.body || '';
+    view.hidden = false;
+    console.log('Opened: ' + email.subject);
+  }
+
+  function installHandlers() {
+    document.getElementById('mail-table').addEventListener('click', function (event) {
+      var target = event.target instanceof Element ? event.target : null;
+      var row = target ? target.closest('tr.zA') : null;
+      if (!row) return;
+      var email = EMAILS.filter(function (e) { return e.id === row.id; })[0];
+      if (email) openBody(email);
+    });
+
+    var toggle = document.getElementById('group-toggle');
+    toggle.checked = currentSettings.groupByPriority;
+    toggle.addEventListener('change', function () {
+      currentSettings.groupByPriority = toggle.checked;
+      var message = { type: 'SETTINGS', settings: cloneSettings() };
+      listeners.forEach(function (fn) {
+        try { fn(message); } catch (err) { /* keep the demo alive */ }
+      });
+    });
+  }
+
+  renderRows();
+  installHandlers();
+})();
+</script>
+
+<!-- Loaded last: talks to the stub above, never to a real extension. -->
+<script src="../dist/content.js"></script>
+</body>
+</html>

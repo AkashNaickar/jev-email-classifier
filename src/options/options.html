@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jev Gmail Classifier - Options</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1f2328;
+        --muted: #6b7280;
+        --border: #d0d7de;
+        --accent: #2563eb;
+        --err: #b91c1c;
+        --ok: #15803d;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1c1f24;
+          --fg: #e6e8eb;
+          --muted: #9aa4b2;
+          --border: #3a4048;
+          --accent: #60a5fa;
+          --err: #f87171;
+          --ok: #4ade80;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 24px 20px 60px;
+        background: var(--bg);
+        color: var(--fg);
+        font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      h2 { font-size: 15px; margin: 24px 0 8px; }
+      p.hint { color: var(--muted); margin: 4px 0 12px; font-size: 13px; }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+      .cat-row { display: flex; gap: 10px; align-items: flex-start; }
+      .swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        margin-top: 6px;
+        flex: 0 0 auto;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+      }
+      .cat-fields { flex: 1 1 auto; display: grid; gap: 6px; }
+      input[type="text"], textarea {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+      }
+      textarea { resize: vertical; min-height: 52px; }
+      button {
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) { border-color: var(--accent); }
+      button:disabled { opacity: 0.55; cursor: default; }
+      button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      button.danger { color: var(--err); }
+      .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+      .row.between { justify-content: space-between; }
+      .slider-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+      input[type="range"] { width: 100%; }
+      .readout { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 3.2em; text-align: right; }
+      .toggle { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
+      .toggle label { flex: 1 1 auto; }
+      .toggle .sub { display: block; color: var(--muted); font-size: 12px; }
+      .errors { color: var(--err); font-size: 13px; margin: 8px 0; white-space: pre-wrap; }
+      .saved {
+        color: var(--ok);
+        font-size: 13px;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+      }
+      .saved.show { opacity: 1; }
+      .footer {
+        position: sticky;
+        bottom: 0;
+        background: var(--bg);
+        border-top: 1px solid var(--border);
+        padding: 12px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .muted { color: var(--muted); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h1>Jev Gmail Classifier</h1>
+    <p class="hint">Categories, thresholds, and privacy controls. Changes apply after Save.</p>
+
+    <h2>Categories <span id="cat-count" class="muted"></span></h2>
+    <p class="hint">
+      Each category needs a name and a description. Descriptions are sent to the provider with
+      every request, so keep them free of sensitive information.
+    </p>
+    <div id="categories"></div>
+    <div class="row">
+      <button id="add-category" type="button">Add category</button>
+    </div>
+
+    <h2>Confidence threshold</h2>
+    <div class="slider-row">
+      <input id="confidence" type="range" min="0" max="1" step="0.05" />
+      <span id="confidence-readout" class="readout"></span>
+    </div>
+    <p class="hint">Below this, a row shows the neutral Uncertain chip.</p>
+
+    <h2>Priority thresholds</h2>
+    <div class="slider-row">
+      <label for="priority-low">Low / Medium boundary</label>
+      <span id="priority-low-readout" class="readout"></span>
+    </div>
+    <input id="priority-low" type="range" min="0" max="1" step="0.05" />
+    <div class="slider-row" style="margin-top: 10px">
+      <label for="priority-high">Medium / High boundary</label>
+      <span id="priority-high-readout" class="readout"></span>
+    </div>
+    <input id="priority-high" type="range" min="0" max="1" step="0.05" />
+    <p id="priority-legend" class="hint"></p>
+
+    <h2>Behaviour</h2>
+    <div class="toggle">
+      <input id="privacy-mode" type="checkbox" />
+      <label for="privacy-mode">
+        Privacy mode
+        <span class="sub">Send less: domain-only sender, no name or full address.</span>
+      </label>
+    </div>
+    <div class="toggle">
+      <input id="deep-mode" type="checkbox" />
+      <label for="deep-mode">
+        Deep mode
+        <span class="sub">Classify the opened email body for ambiguous messages.</span>
+      </label>
+    </div>
+    <div class="toggle">
+      <input id="group-by-priority" type="checkbox" />
+      <label for="group-by-priority">
+        Group by priority
+        <span class="sub">On-screen-only grouping; never changes Gmail's DOM order.</span>
+      </label>
+    </div>
+    <div class="toggle">
+      <input id="classify-unread-only" type="checkbox" />
+      <label for="classify-unread-only">
+        Classify unread only
+        <span class="sub">Skip rows that are already read.</span>
+      </label>
+    </div>
+
+    <h2>Cache</h2>
+    <div class="row between">
+      <span id="cache-line" class="muted">Cache: 0 entries</span>
+      <button id="clear-cache" type="button">Clear cache</button>
+    </div>
+
+    <div id="errors" class="errors"></div>
+
+    <div class="footer">
+      <button id="save" class="primary" type="button">Save</button>
+      <span id="saved" class="saved">Saved</span>
+    </div>
+
+    <script type="module" src="./options.js"></script>
+  </body>
+</html>

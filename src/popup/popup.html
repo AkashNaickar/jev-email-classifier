@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jev Gmail Classifier</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #1f2328;
+        --muted: #6b7280;
+        --border: #d0d7de;
+        --accent: #2563eb;
+        --ok: #15803d;
+        --err: #b91c1c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1c1f24;
+          --fg: #e6e8eb;
+          --muted: #9aa4b2;
+          --border: #3a4048;
+          --accent: #60a5fa;
+          --ok: #4ade80;
+          --err: #f87171;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        width: 340px;
+        margin: 0;
+        padding: 12px;
+        background: var(--bg);
+        color: var(--fg);
+        font: 13px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      h1 { font-size: 15px; margin: 0 0 10px; }
+      .row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+      .row.between { justify-content: space-between; }
+      label { color: var(--muted); }
+      select, input[type="password"], input[type="text"] {
+        width: 100%;
+        padding: 5px 7px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+      }
+      button {
+        padding: 5px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) { border-color: var(--accent); }
+      button:disabled { opacity: 0.55; cursor: default; }
+      button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .field { margin: 8px 0; }
+      .field > label { display: block; margin-bottom: 4px; }
+      .status { color: var(--muted); font-size: 12px; }
+      .result { margin-top: 6px; font-size: 12px; white-space: pre-wrap; }
+      .result.ok { color: var(--ok); }
+      .result.err { color: var(--err); }
+      .warn {
+        margin: 10px 0 0;
+        padding: 7px 9px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .divider { height: 1px; background: var(--border); margin: 10px 0; }
+      .switch { display: flex; align-items: center; gap: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Jev Gmail Classifier</h1>
+
+    <div class="row between">
+      <span class="switch">
+        <input id="enabled" type="checkbox" />
+        <label for="enabled">Enabled</label>
+      </span>
+      <button id="open-options" type="button">Open options</button>
+    </div>
+
+    <div class="field">
+      <label for="provider">Provider</label>
+      <select id="provider"></select>
+    </div>
+
+    <div class="field">
+      <label for="api-key">API key</label>
+      <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key" />
+      <div class="row" style="margin: 6px 0 0">
+        <button id="save-key" class="primary" type="button">Save key</button>
+        <button id="remove-key" type="button">Remove</button>
+        <span id="key-status" class="status"></span>
+      </div>
+    </div>
+
+    <div class="field">
+      <button id="test" type="button">Test connection</button>
+      <div id="test-result" class="result"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="row between">
+      <span id="cache-line" class="status">Cache: 0 entries</span>
+      <button id="clear-cache" type="button">Clear cache</button>
+    </div>
+
+    <p class="warn">
+      Category names and descriptions are sent to the provider with every request. Do not put
+      sensitive information in them.
+    </p>
+
+    <script type="module" src="./popup.js"></script>
+  </body>
+</html>
