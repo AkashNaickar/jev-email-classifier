@@ -1,160 +1,208 @@
 # Jev Gmail Classifier
 
-A Chrome MV3 extension that labels each Gmail row with a category chip, a Low/Medium/High priority dot, and spam/needs-reply probabilities by asking TypeSafe Jev about one email at a time — metadata-only by default, read-only, bring your own key.
+A Chrome (Manifest V3) extension that classifies Gmail rows with [TypeSafe Jev](https://docs.typesafe.ai) — using its **Choice / Score / Noul** decision primitives, not text generation — and shows a colored category chip and priority dot on each row. Metadata-only and read-only by default, with your own API key.
 
-![build](https://img.shields.io/badge/build-passing-brightgreen)
-![typecheck](https://img.shields.io/badge/typecheck-passing-brightgreen)
-![test](https://img.shields.io/badge/test-75_passing-brightgreen)
-![license](https://img.shields.io/badge/license-MIT-blue)
-![manifest](https://img.shields.io/badge/manifest-v3-orange)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Manifest V3](https://img.shields.io/badge/manifest-v3-blue.svg)](public/manifest.json)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)](tsconfig.json)
+[![Tests](https://img.shields.io/badge/tests-75%20passing-success.svg)](tests)
+[![Chrome](https://img.shields.io/badge/Chrome-120%2B-4285F4.svg)](https://www.google.com/chrome/)
 
-There is no hosted demo. This is an unpacked extension that runs inside your own Gmail.
+## Overview
 
-## What it does
+Sorting a busy inbox means reading each message just far enough to decide what it is and how urgent it is. That is a classification problem, not a writing problem — exactly the kind of task a System One model is built for.
 
-- Reads the Gmail rows that are currently rendered: sender name, sender address, subject, one-line snippet, date, and unread state.
-- Asks Jev four questions about one email per request: a category, a priority, a spam probability, and a needs-reply probability.
-- Draws a chip on each row: the category name in its colour plus a priority dot (red high, amber medium, grey low). The tooltip shows category confidence, priority, spam %, needs-reply %, and whether the result came from the metadata pass or the deep pass.
-- Shows a status bar in the bottom-left of the Gmail page: classified, in flight, errors, and estimated cost.
-- Options page: category editor, confidence and priority thresholds, privacy mode, deep mode, group by priority, classify unread only, clear cache.
-- Read-only. It never archives, deletes, labels, or sends mail, and it never reorders the DOM — group-by-priority is a CSS transform only.
+Jev evaluates typed questions against a piece of state and returns structured answers with probabilities and confidence. This extension feeds each Gmail row (sender, subject, snippet, date) to Jev as `state`, asks four typed questions, and renders the result inline. It never generates prose, never parses free text, and never touches your mail beyond reading the list.
 
-## How classification works
+It is for anyone who wants an at-a-glance triage signal in Gmail without handing their mailbox to a hosted service: the key is yours, the data sent is metadata only, and the extension is read-only.
 
-One Jev request per email. Every output maps to one Jev primitive:
+## Demo
 
-| Output | Jev primitive | How it is read |
-| --- | --- | --- |
-| `category` | **Choice** | one option per configured category id; answer `choice` + `confidence` |
-| `priority` (Low/Medium/High) | **Score** | 3 descriptive levels, normalised to 0..1 and bucketed |
-| `spam_probability` | **Noul** | `noul` = P(yes), 0..1 |
-| `needs_reply_probability` | **Noul** | `noul` = P(yes), 0..1 |
+The screenshots below are the extension's content script and UI running against the bundled offline harness (`dev/demo.html`) with canned Jev answers — no network, no key.
 
-- The Choice question has one option per configured category (`src/shared/questions.ts`): the option key is the category id and the option text is its description.
-- The Score question uses three priority levels from `src/shared/defaults.ts` (`PRIORITY_LEVELS`). The normalised priority is `score / (levels - 1)`, clamped to 0..1. `>= priorityHighThreshold` (default `0.66`) is **High**, `<= priorityLowThreshold` (default `0.34`) is **Low**, otherwise **Medium**.
-- When the Choice `confidence` is below `confidenceThreshold` (default `0.45`), or the returned option is not a configured category, the row shows the neutral, italic **Uncertain** chip instead of a category name.
-- The four local question ids are `category`, `priority`, `spam`, and `needs_reply`. Responses are validated and turned into a `Classification` in `src/shared/parse.ts`; a missing or malformed answer surfaces an error for that row instead of a forced guess.
-- The content script batches rendered rows with a debounce; the service worker runs them through a queue with concurrency 4 and retries transient failures (429, 529, network, 5xx) with exponential backoff and jitter, honouring `retry-after`.
-- Cost is estimated per response: the gateway's `provider_metadata.gateway.cost` when present, otherwise `input_tokens × $0.042 / 1M` (output tokens are free).
+![Gmail list with category chips and priority dots](docs/screenshots/01-inbox-chips.png)
+
+*Category chips and priority dots injected on each unread row, with a status bar showing classified count, in-flight, errors, and estimated cost.*
+
+![Rows grouped by priority on screen only](docs/screenshots/02-grouped-by-priority.png)
+
+*Optional grouping by priority. Rows are moved with CSS transforms only — Gmail's own DOM order is never changed, so clicks and selection still land on the visible row.*
+
+![Options page: categories and thresholds](docs/screenshots/03-options.png)
+
+*Options: category editor (name + description), confidence and priority thresholds, privacy/deep-mode/grouping toggles, and cache controls.*
+
+![Popup: enable, provider, API key, test connection](docs/screenshots/04-popup.png)
+
+*Popup: on/off, provider selection, API key (shown only as the last four characters), Test connection, and cache stats.*
+
+## Features
+
+- **Typed classification per row** — category, priority, spam probability, and needs-reply probability, from Jev primitives.
+- **Colored category chip + priority dot** on each classified row.
+- **Uncertain, not a guess** — a Choice answer below your confidence threshold shows a neutral "Uncertain" chip.
+- **User-defined categories** — name + natural-language description (the description is the Jev `criteria`); add, edit, remove, up to 15.
+- **Two providers** — TypeSafe directly, or Vercel AI Gateway; one interface, swappable key and endpoint.
+- **Metadata only by default** — sender, subject, snippet, and date. The message body is never read.
+- **Opt-in deep mode** — re-classifies an ambiguous row from the opened body when you click it.
+- **Batching, debounce, retry** — a concurrency-limited queue with exponential backoff on 429/529/5xx.
+- **LRU cache** — bounded to 5000 entries in `chrome.storage.local`, invalidated when the provider or categories change.
+- **Read-only** — it never archives, deletes, labels, or sends. Grouping is on-screen only.
+- **No backend, no telemetry** — nothing is sent anywhere except the provider you choose.
+
+## Tech stack
+
+| Area | Choice |
+| --- | --- |
+| Platform | Chrome Extension Manifest V3 (service worker + content script) |
+| Language | TypeScript (strict) |
+| Bundler | esbuild (`scripts/build.mjs`) |
+| Tests | Vitest |
+| Storage | `chrome.storage.local` only |
+| Decision model | TypeSafe Jev (`jev-latest`) or Vercel AI Gateway (`typesafe-ai/jev`) |
+
+## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph Page["Gmail page (content script)"]
-    DOM["gmail-dom.ts<br/>selectors + row reading"]
-    CHIPS["content.ts<br/>chips, status bar, grouping"]
+  subgraph Gmail["Gmail page"]
+    DOM["gmail-dom.ts<br/>selectors"] --> CS["content.ts<br/>chips, status bar, observer"]
   end
-
-  subgraph Worker["Service worker (owns the key)"]
-    Q["queue (concurrency 4)<br/>retry + backoff"]
-    C["LRU cache<br/>chrome.storage.local"]
-  end
-
-  P{"Provider"}
-
-  DOM -->|"CLASSIFY"| Q
-  CHIPS -->|"DEEP_CLASSIFY"| Q
-  Q --> C
-  Q --> P
-  P -->|TypeSafe direct| TS["api.typesafe.ai"]
-  P -->|TypeSafe-compatible| VG["ai-gateway.vercel.sh"]
-  Q -->|"CLASSIFY_RESULT / STATUS"| CHIPS
+  CS -- "typed messages" --> SW["service worker<br/>key, queue, retry, cache"]
+  SW --> P["provider.ts"]
+  P --> TS["TypeSafe<br/>api.typesafe.ai"]
+  P --> VG["Vercel AI Gateway<br/>ai-gateway.vercel.sh"]
 ```
 
-The message protocol lives in `src/shared/types.ts`. The content script makes no network calls and never reads the API key; only the service worker calls the provider.
+The content script reads the list and injects chips; it has no network access and never sees the API key. The service worker owns the key, batches requests, retries transient failures, and caches results. Providers share one interface (`src/shared/provider.ts`).
 
-## Install (load unpacked)
+Jev primitives map to outputs as follows:
 
-Requires Node.js for the build and Chrome 120+ (the manifest's `minimum_chrome_version` is `120`).
+| Output | Jev primitive |
+| --- | --- |
+| `category` | **Choice** over your category ids (description = criteria) |
+| `priority` (Low / Medium / High) | **Score** with three descriptive levels, normalised to 0–1 |
+| `spam_probability` | **Noul** (P(true), 0–1) |
+| `needs_reply_probability` | **Noul** (P(true), 0–1) |
+
+Project structure:
+
+```
+src/
+  shared/            # typed protocol and pure logic (tested)
+    types.ts         # message protocol + domain types
+    defaults.ts      # providers, categories, thresholds, limits
+    questions.ts     # settings -> Jev questions
+    parse.ts         # Jev answers -> Classification (schema-checked)
+    cache.ts         # LRU cache + settings fingerprint
+    queue.ts         # concurrency + retry/backoff
+    metadata.ts      # snippet cleaning, hashing, state building
+    provider.ts      # JevProvider + TypeSafe / Vercel Gateway
+    cost.ts, errors.ts, util.ts
+  background/        # service worker: owns the key, queue, cache
+  content/           # Gmail DOM + chip injection (no network)
+    gmail-dom.ts     # every Gmail selector, isolated
+  popup/             # on/off, provider, key, test connection
+  options/           # category editor, thresholds, privacy
+scripts/             # build.mjs, gen-icons.mjs, eval.ts
+tests/               # Vitest unit tests
+fixtures/            # 30 labelled emails for the eval
+dev/demo.html        # zero-network UI harness
+docs/gmail-dom.md    # selector notes
+```
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Google Chrome 120+ (for the unpacked extension)
+
+### Install and build
 
 ```bash
+git clone https://github.com/AkashNaickar/jev-email-classifier.git
+cd jev-email-classifier
 npm install
 npm run build
 ```
 
-Then load it:
+`npm run build` writes the unpacked extension to `dist/`.
+
+### Load it in Chrome
 
 1. Open `chrome://extensions`.
-2. Turn on **Developer mode** (top right).
-3. Click **Load unpacked**.
-4. Select the `dist/` directory.
+2. Turn on **Developer mode**.
+3. Click **Load unpacked** and select the `dist/` folder.
+4. Open the extension popup to finish setup.
 
-`npm run build` bundles the content script, service worker, popup, and options page into `dist/` with esbuild, and copies the manifest, HTML, CSS, and icons. Re-run it (or `npm run watch`) after any source change.
+### Get an API key
 
-## Getting a key
+- **TypeSafe** — create a key at <https://console.typesafe.ai/keys>, then choose provider "TypeSafe".
+- **Vercel AI Gateway** — create a key via <https://vercel.com/docs/ai-gateway>, then choose provider "Vercel AI Gateway" (model `typesafe-ai/jev`).
 
-The extension uses your own key; there is no shared key and no account with this project.
+Paste the key in the popup and press **Test connection**. The key is stored in `chrome.storage.local` and read only by the service worker.
 
-- **TypeSafe (direct)** — create a key at <https://console.typesafe.ai/keys>. Default model `jev-latest`.
-- **Vercel AI Gateway (TypeSafe-compatible)** — see <https://vercel.com/docs/ai-gateway>. Model `typesafe-ai/jev`.
+### Configuration
 
-Paste the key into the popup, choose the matching provider, and press **Test connection**.
+The extension needs no environment variables — settings and the key live in `chrome.storage.local` (see [PRIVACY.md](PRIVACY.md)). Environment variables are only used by the evaluation script:
 
-## Using it
-
-Popup:
-
-- **Enabled** toggles classification on or off.
-- **Provider** chooses TypeSafe direct or Vercel AI Gateway; each stores its own key.
-- **API key** with **Save key** and **Remove**; the popup shows only the last 4 characters.
-- **Test connection** sends one small Noul request and reports OK/Failed, the model, latency, and (for the gateway) the cost.
-- **Clear cache** and **Open options**.
-
-Options:
-
-- Category editor: add and remove categories, each with a name and a description (cap 15).
-- Confidence threshold, plus the low/medium and medium/high priority thresholds.
-- Behaviour toggles: privacy mode, deep mode, group by priority, classify unread only.
-- Cache size and **Clear cache**; changes apply after **Save**.
-
-## Categories
-
-Each category has a **name** and a **description**. The name becomes the chip; the description becomes the Jev `criteria` for that Choice option. Both are sent to the provider with every request, so do not put secrets in them. (Concretely, the Choice `criteria` map is keyed by category id and valued by description; the id for a category you add is a slug of its name.)
-
-The cap is 15 categories (`MAX_CATEGORIES`), enforced in `src/shared/questions.ts` and in the options UI, which disables **Add category** at the cap. The default list has 8 categories: Needs reply, Action required, Updates, Newsletters, Promotions, Receipts/Finance, Social, Spam.
-
-## Privacy
-
-The extension sends the sender name, sender address, subject, cleaned snippet, and date of each classified row to the provider you choose, over HTTPS, under your own key. It also sends your category names/descriptions as the Choice criteria, the priority level descriptions, and the two Noul questions. Privacy mode drops the sender name, reduces the address to `***@domain`, and truncates the snippet to 120 characters. Deep mode is opt-in and additionally sends the cleaned, truncated body of an opened message. There is no analytics, telemetry, or backend of this project, and attachments are never read or sent.
-
-See [PRIVACY.md](PRIVACY.md) for the full detail.
-
-## Development
-
-```bash
-npm run watch      # esbuild rebuild on change
-npm run typecheck  # tsc --noEmit
-npm test           # vitest run
-npm run eval       # tsx scripts/eval.ts (see Testing)
+```text
+TYPESAFE_API_KEY     TypeSafe key for a live eval run
+AI_GATEWAY_API_KEY   Vercel AI Gateway key for a live eval run
+PROVIDER             typesafe | vercel-gateway
 ```
 
-`dev/demo.html` is a zero-network harness: a fake Gmail list with a stubbed `chrome` API and canned classifications. Open it in Chrome after `npm run build` to work on the chips and selectors without touching Gmail or a provider.
+Copy [`.env.example`](.env.example) to `.env` if you want to run a live eval.
 
-Keep every Gmail selector in `src/content/gmail-dom.ts` and update `docs/gmail-dom.md` in the same change; see that file when Gmail markup changes.
+## Usage
+
+- Open <https://mail.google.com>. Unread rows in view are classified and chipped; scrolling classifies more.
+- The **status bar** (bottom-left) shows `classified · in flight · errors · ~cost`.
+- **Popup** — enable/disable, choose a provider, save/remove the key, Test connection, clear cache.
+- **Options** — edit categories, set the confidence and priority thresholds, toggle privacy mode, deep mode, and group-by-priority.
+- Clicking an ambiguous row in **deep mode** re-classifies it from the opened body.
 
 ## Testing
 
-Vitest unit tests (`npm test`) cover the shared core: cache (LRU eviction and settings fingerprint), metadata (snippet cleaning, hashing, state building), parsing (response validation, priority bucketing, Uncertain handling), question building, and the retry/backoff/concurrency queue. In this checkout that is 5 test files and 75 tests, all passing.
-
-`package.json` declares `npm run eval` to run `scripts/eval.ts` over `fixtures/emails.json` and report accuracy plus a confusion matrix. As designed, it uses a deterministic offline stub when no key is set and a live provider when a key is set, selected with these environment variables:
-
-```text
-TYPESAFE_API_KEY    TypeSafe key for a live eval run
-AI_GATEWAY_API_KEY  Vercel AI Gateway key for a live eval run
-PROVIDER            Which provider to use: typesafe | vercel-gateway
+```bash
+npm run typecheck   # tsc --noEmit
+npm test            # Vitest unit tests (5 files, 75 tests)
+npm run eval        # classification harness over 30 labelled emails
 ```
 
-`scripts/eval.ts` runs the classifier over the 30 labelled emails in `fixtures/emails.json` and prints overall accuracy, a per-category precision/recall/F1 table, a confusion matrix, and priority/spam/needs-reply accuracy. With no key set it uses a deterministic keyword stub and says so; the stub's figures test the harness, not Jev. Set a provider key for a live run.
+`npm run eval` prints overall accuracy, per-category precision/recall/F1, and a confusion matrix. Without a key it runs a deterministic offline stub (and says so); set `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY` for a live run.
+
+The UI can be exercised with no key and no network via the harness:
+
+```bash
+npm run build
+python -m http.server 8787 --directory .   # or just open dev/demo.html in Chrome
+# then open http://localhost:8787/dev/demo.html
+```
 
 ## Known limitations
 
-- **Gmail DOM fragility.** Gmail's page markup is undocumented and can change without notice. All selectors live in `src/content/gmail-dom.ts`; when the list shell exists but no rows match, chips pause and the status bar warns once. See [docs/gmail-dom.md](docs/gmail-dom.md).
-- Only rows currently rendered in the DOM are classified. Scrolling renders and classifies more, but rows that are never rendered are never sent.
-- Grouping is on-screen only (CSS `transform: translateY()`), never a DOM reorder, so the visible order can differ from Gmail's own `j`/`k` keyboard order.
-- **Deep mode is opt-in.** By default only metadata is sent; the message body is not read unless you enable deep mode, and only ambiguous rows you open are re-classified.
-- Classify-unread-only is on by default.
-- The extension is **unofficial** and is not affiliated with, endorsed by, or supported by Google, Gmail, TypeSafe, or Vercel.
-- As an MV3 service worker it can be suspended between events, which can reset the in-memory status counters; the cache is persisted.
+- **Gmail DOM fragility.** Gmail exposes no supported API for its page markup. All selectors live in [`src/content/gmail-dom.ts`](src/content/gmail-dom.ts); if the list structure changes, chips pause and the status bar warns once. See [docs/gmail-dom.md](docs/gmail-dom.md).
+- Only rows currently rendered in the list are classified. Rows never scrolled into view are never sent.
+- On-screen grouping uses CSS transforms, so Gmail's own `j`/`k` keyboard order can differ from the visible order.
+- The MV3 service worker can be suspended between events, which resets the in-memory status counters; the cache is persisted.
+- English-first classification accuracy (Jev's primary training language).
+- Unofficial; not affiliated with, endorsed by, or supported by Google, Gmail, TypeSafe, or Vercel.
+
+## Roadmap
+
+- Model picker and per-provider model selection in Options.
+- Optional, explicitly opt-in Gmail actions (label/archive) behind a separate toggle.
+
+## Contributing
+
+Issues and pull requests are welcome. Please run `npm run typecheck && npm test` before opening a PR, and keep Gmail selectors confined to `src/content/gmail-dom.ts`.
 
 ## License
 
-MIT.
+[MIT](LICENSE).
+
+## Author
+
+Built by [AkashNaickar](https://github.com/AkashNaickar).
