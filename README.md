@@ -18,7 +18,7 @@ It is for anyone who wants an at-a-glance triage signal in Gmail without handing
 
 ## Demo
 
-The screenshots below are the extension's content script and UI running against the bundled offline harness (`dev/demo.html`) with canned Jev answers — no network, no key.
+The screenshots below show the extension running offline with canned answers — no network, no key. The inbox shots use the bundled harness (`dev/demo.html`, a fake Gmail list driving the real built `dist/content.js`); the options, popup, and tests below that drive the real built pages (`dist/options.html`, `dist/popup.html` and unit tests via Vitest).
 
 ![Gmail list with category chips and priority dots](docs/screenshots/01-inbox-chips.png)
 
@@ -35,6 +35,10 @@ The screenshots below are the extension's content script and UI running against 
 ![Popup: enable, provider, API key, test connection](docs/screenshots/04-popup.png)
 
 *Popup: on/off, provider selection, API key (shown only as the last four characters), Test connection, and cache stats.*
+
+![Popup: failed Test connection with a bad key](docs/screenshots/05-error-bad-key.png)
+
+*Error handling: a bad key fails visibly inline instead of silently — the same path the worker uses for 401 auth errors, rate limits, and offline failures.*
 
 ## Features
 
